@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaTrash, FaPlus, FaEye, FaClock, FaMapMarkerAlt, FaUser, FaCalendarAlt } from "react-icons/fa";
+import { FaTrash, FaPlus, FaEye, FaClock, FaMapMarkerAlt, FaUser, FaCalendarAlt, FaExclamationTriangle, FaHashtag, FaCalendar } from "react-icons/fa";
 import config from "../config/api";
 
 const ClassesPage = () => {
@@ -136,82 +136,199 @@ const ClassesPage = () => {
       setLoading(false);
     }
   };
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  const isExpiringSoon = (expirationDate) => {
+    if (!expirationDate) return false;
+    const now = new Date();
+    const expiration = new Date(expirationDate);
+    const daysUntilExpiration = (expiration - now) / (1000 * 60 * 60 * 24);
+    return daysUntilExpiration > 0 && daysUntilExpiration <= 7;
+  };
+
+  const getDaysUntilExpiration = (expirationDate) => {
+    if (!expirationDate) return null;
+    const now = new Date();
+    const expiration = new Date(expirationDate);
+    const days = Math.ceil((expiration - now) / (1000 * 60 * 60 * 24));
+    return days;
+  };
+
+  // Separate classes into active and expired
+  const activeClasses = classes.filter(cls => !cls.isExpired);
+  const expiredClasses = classes.filter(cls => cls.isExpired);
 
   return (
-    // Removed the background override - now inherits from App.jsx
     <div className="min-h-screen text-white">
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold mb-4 text-[#ffcb25]">Your Tracked Classes</h1>
           <p className="text-xl text-gray-200">Monitor your classes and get notified when spots open up</p>
+          {expiredClasses.length > 0 && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-orange-500/20 text-orange-300 px-4 py-2 rounded-lg">
+              <FaExclamationTriangle />
+              <span>{expiredClasses.length} expired {expiredClasses.length === 1 ? 'class' : 'classes'}</span>
+            </div>
+          )}
         </div>
 
-        {/* Classes Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          {classes.map((cls) => (
-            <div
-              key={cls._id}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-2xl border border-white/20 hover:transform hover:scale-105 transition-all duration-300"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-[#ffcb25] mb-2">{cls.title}</h3>
-                  <p className="text-gray-200 font-medium">{cls.course}</p>
-                </div>
-                <button
-                  onClick={() => handleDelete(cls._id)}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-2 rounded-lg transition-all duration-200"
-                >
-                  <FaTrash size={16} />
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center text-sm text-gray-300">
-                  <FaUser className="mr-2 text-[#ffcb25]" />
-                  <span>{cls.instructors.join(", ")}</span>
-                </div>
+        {/* Active Classes */}
+        {activeClasses.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-3xl font-bold mb-6 text-white">Active Classes</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {activeClasses.map((cls) => {
+                const daysLeft = getDaysUntilExpiration(cls.expirationDate);
+                const expiringSoon = isExpiringSoon(cls.expirationDate);
                 
-                <div className="flex items-center text-sm text-gray-300">
-                  <FaClock className="mr-2 text-[#ffcb25]" />
-                  <span>{cls.time && cls.time !== "N/A" ? `${cls.time} | ${cls.days}` : "Time TBD"}</span>
-                </div>
+                return (
+                  <div
+                    key={cls._id}
+                    className={`bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-2xl border ${
+                      expiringSoon ? 'border-orange-400/50' : 'border-white/20'
+                    } hover:transform hover:scale-105 transition-all duration-300`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-[#ffcb25] mb-2">{cls.title}</h3>
+                        <p className="text-gray-200 font-medium">{cls.course}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(cls._id)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-2 rounded-lg transition-all duration-200"
+                      >
+                        <FaTrash size={16} />
+                      </button>
+                    </div>
 
-                <div className="flex items-center text-sm text-gray-300">
-                  <FaMapMarkerAlt className="mr-2 text-[#ffcb25]" />
-                  <span>{cls.location && cls.location !== "N/A" ? cls.location : "Location TBD"}</span>
-                </div>
+                    {/* Active Class Cards */}
+                    <div className="space-y-3">
+                      <div className="flex items-center text-sm text-gray-300">
+                        <FaUser className="mr-2 text-[#ffcb25]" />
+                        <span>{cls.instructors.join(", ")}</span>
+                      </div>
 
-                <div className="flex items-center text-sm text-gray-300">
-                  <FaCalendarAlt className="mr-2 text-[#ffcb25]" />
-                  <span>{cls.dates && cls.dates !== "N/A" ? cls.dates : "Dates TBD"}</span>
-                </div>
+                      <div className="flex items-center text-sm text-gray-300">
+                        <FaHashtag className="mr-2 text-[#ffcb25]" />
+                        <span>{cls.number}</span>
+                      </div>
 
-                <div className="pt-2 border-t border-white/20">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                    cls.seatStatus === 'Open' ? 'bg-green-500/20 text-green-300' : 
-                    cls.seatStatus === 'Waitlist' ? 'bg-yellow-500/20 text-yellow-300' :
-                    'bg-red-500/20 text-red-300'
-                  }`}>
-                    {cls.seatStatus}
-                  </span>
-                  <span className="ml-2 text-sm text-gray-400">{cls.units && cls.units !== "N/A" ? `${cls.units} units` : "Units TBD"}</span>
-                </div>
+                      <div className="flex items-center text-sm text-gray-300">
+                        <FaCalendarAlt className="mr-2 text-[#ffcb25]" />
+                        <span>{cls.dates && cls.dates !== "N/A" ? cls.dates : "Dates TBD"}</span>
+                      </div>
+                      
+                      <div className="flex items-center text-sm text-gray-300">
+                        <FaCalendar className="mr-2 text-[#ffcb25]" />
+                        <span>{cls.days && cls.days !== "N/A" ? cls.days : "Days TBD"}</span>
+                      </div>
+
+                      <div className="flex items-center text-sm text-gray-300">
+                        <FaClock className="mr-2 text-[#ffcb25]" />
+                        <span>{cls.time && cls.time !== "N/A" ? cls.time : "Time TBD"}</span>
+                      </div>
+
+                      <div className="flex items-center text-sm text-gray-300">
+                        <FaMapMarkerAlt className="mr-2 text-[#ffcb25]" />
+                        <span>{cls.location && cls.location !== "N/A" ? cls.location : "Location TBD"}</span>
+                      </div>
+
+                      {/* Session and Expiration Info */}
+                      {cls.session && cls.session !== "Unknown" && (
+                        <div className="pt-2 border-t border-white/20">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-400">Session {cls.session}</span>
+                            {cls.expirationDate && (
+                              <span className={`font-medium ${
+                                expiringSoon ? 'text-orange-400' : 'text-gray-400'
+                              }`}>
+                                {daysLeft > 0 ? `${daysLeft} days left` : 'Expires today'}
+                              </span>
+                            )}
+                          </div>
+                          {cls.expirationDate && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Expires: {formatDate(cls.expirationDate)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-white/20">
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                          cls.seatStatus === 'Open' ? 'bg-green-500/20 text-green-300' : 
+                          cls.seatStatus === 'Waitlist' ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-red-500/20 text-red-300'
+                        }`}>
+                          {cls.seatStatus}
+                        </span>
+                        <span className="ml-2 text-sm text-gray-400">{cls.units && cls.units !== "N/A" ? `${cls.units} units` : "Units TBD"}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Add Class Card */}
+              <div
+                onClick={() => setShowAddClassModal(true)}
+                className="bg-white/5 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-dashed border-white/30 hover:border-[#ffcb25] hover:bg-white/10 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[200px] group"
+              >
+                <FaPlus className="text-4xl text-[#ffcb25] mb-4 group-hover:scale-110 transition-transform duration-300" />
+                <h3 className="text-xl font-bold text-[#ffcb25] mb-2">Add New Class</h3>
+                <p className="text-gray-300 text-center">Track a new class and get notified when spots open</p>
               </div>
             </div>
-          ))}
-
-          {/* Add Class Card */}
-          <div
-            onClick={() => setShowAddClassModal(true)}
-            className="bg-white/5 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-dashed border-white/30 hover:border-[#ffcb25] hover:bg-white/10 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[200px] group"
-          >
-            <FaPlus className="text-4xl text-[#ffcb25] mb-4 group-hover:scale-110 transition-transform duration-300" />
-            <h3 className="text-xl font-bold text-[#ffcb25] mb-2">Add New Class</h3>
-            <p className="text-gray-300 text-center">Track a new class and get notified when spots open</p>
           </div>
-        </div>
+        )}
+
+        {/* Expired Classes */}
+        {expiredClasses.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold mb-6 text-gray-400">Expired Classes</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {expiredClasses.map((cls) => (
+                <div
+                  key={cls._id}
+                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 shadow-2xl border border-red-500/30 opacity-60"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FaExclamationTriangle className="text-red-400" />
+                        <span className="text-sm text-red-400 font-semibold">EXPIRED</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-400 mb-2">{cls.title}</h3>
+                      <p className="text-gray-500 font-medium">{cls.course}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(cls._id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-2 rounded-lg transition-all duration-200"
+                    >
+                      <FaTrash size={16} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <FaHashtag className="text-gray-600" />
+                      <span>Class # {cls.number}</span>
+                    </div>
+                    <div>Expired: {formatDate(cls.expirationDate)}</div>
+                    <div>Session {cls.session}</div>
+                    <div className="pt-2 text-xs">
+                      This class is no longer being monitored for seat availability.
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Empty State */}
         {classes.length === 0 && (
@@ -231,7 +348,7 @@ const ClassesPage = () => {
         {/* Modal */}
         {showAddClassModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6 text-[#92223D]">Add New Class</h2>
               
               <div className="mb-6">
@@ -261,7 +378,7 @@ const ClassesPage = () => {
               </button>
 
               {previewClass && (
-                <div className="bg-gray-50 rounded-xl p-4 mb-6 border">
+                <div className="bg-gray-50 rounded-xl p-4 mb-6 border max-h-64 overflow-y-auto">
                   <h3 className="font-bold text-[#92223D] mb-2">{previewClass.title}</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                     <div><strong>Course:</strong> {previewClass.course}</div>
@@ -271,6 +388,14 @@ const ClassesPage = () => {
                     <div><strong>Time:</strong> {previewClass.startTime} - {previewClass.endTime}</div>
                     <div><strong>Location:</strong> {previewClass.location}</div>
                     <div><strong>Dates:</strong> {previewClass.dates}</div>
+                    {previewClass.session && previewClass.session !== "Unknown" && (
+                      <>
+                        <div><strong>Session:</strong> {previewClass.session}</div>
+                        {previewClass.startDate && (
+                          <div><strong>Starts:</strong> {formatDate(previewClass.startDate)}</div>
+                        )}
+                      </>
+                    )}
                     <div><strong>Status:</strong> 
                       <span className={`ml-1 px-2 py-1 rounded text-xs ${
                         previewClass.seatStatus === 'Open' ? 'bg-green-100 text-green-800' : 

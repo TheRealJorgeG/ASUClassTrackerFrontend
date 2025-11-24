@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { AiOutlineClose, AiOutlineMenu, AiOutlineDown } from "react-icons/ai";
 import { Link } from "react-router-dom";
 
-const Navbar = ({ user, setToken }) => {
+// Changed props from { user, setToken } to { user, handleLogout }
+const Navbar = ({ user, handleLogout }) => {
   const [nav, setNav] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -10,10 +11,7 @@ const Navbar = ({ user, setToken }) => {
     setNav(!nav);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setToken("");
-  };
+  // Removed old local handleLogout definition. It now uses the prop directly.
 
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
@@ -43,7 +41,7 @@ const Navbar = ({ user, setToken }) => {
               <button
                 onClick={() => {
                   setDropdownOpen(false);
-                  handleLogout();
+                  handleLogout(); // Using prop handleLogout
                 }}
                 className="block w-full text-left px-6 py-4 hover:bg-gray-100 transition-all duration-200 font-semibold flex items-center gap-3"
               >
@@ -118,7 +116,7 @@ const Navbar = ({ user, setToken }) => {
                 </li>
                 <li
                   className="p-4 border border-gray-600 rounded-xl bg-white/5 backdrop-blur-md hover:bg-red-500/20 transition-all duration-300 cursor-pointer"
-                  onClick={handleLogout}
+                  onClick={handleLogout} // Using prop handleLogout
                 >
                   <span className="text-red-400 font-semibold flex items-center gap-3">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
