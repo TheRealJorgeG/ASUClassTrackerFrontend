@@ -1,9 +1,13 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom"; // Added useLocation
 import config from "../config/api";
 
 const AuthPage = ({ setToken }) => {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation(); // Initialize useLocation
+  // Check location state. If { isLogin: false } is passed, start with signup. Default to login (true).
+  const initialIsLogin = location.state?.isLogin ?? true; 
+  
+  const [isLogin, setIsLogin] = useState(initialIsLogin); // Use location state for initial value
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isVisible, setIsVisible] = useState(false);

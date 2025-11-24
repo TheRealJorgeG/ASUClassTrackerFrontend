@@ -6,7 +6,8 @@ const Villain = () => {
     const navigate = useNavigate();
 
     const handleGetStarted = () => {
-        navigate("/auth");
+        // Navigate to /auth and pass state to set isLogin to false (show signup)
+        navigate("/auth", { state: { isLogin: false } });
     };
 
     return (
