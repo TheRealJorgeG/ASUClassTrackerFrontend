@@ -8,6 +8,7 @@ const ClassesPage = () => {
   const [newClassNumber, setNewClassNumber] = useState("");
   const [previewClass, setPreviewClass] = useState(null);
   const [loading, setLoading] = useState(false);
+  const MAX_CLASSES = 3;
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -160,6 +161,7 @@ const ClassesPage = () => {
   // Separate classes into active and expired
   const activeClasses = classes.filter(cls => !cls.isExpired);
   const expiredClasses = classes.filter(cls => cls.isExpired);
+  const maxClassesReached = activeClasses.length >= MAX_CLASSES;
 
   return (
     <div className="min-h-screen text-white">
@@ -241,17 +243,17 @@ const ClassesPage = () => {
                       {cls.session && cls.session !== "Unknown" && (
                         <div className="pt-2 border-t border-white/20">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-400">Session {cls.session}</span>
+                            <span className="text-gray-300">Session {cls.session}</span>
                             {cls.expirationDate && (
                               <span className={`font-medium ${
-                                expiringSoon ? 'text-orange-400' : 'text-gray-400'
+                                expiringSoon ? 'text-orange-400' : 'text-gray-300'
                               }`}>
                                 {daysLeft > 0 ? `${daysLeft} days left` : 'Expires today'}
                               </span>
                             )}
                           </div>
                           {cls.expirationDate && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-gray-300 mt-1">
                               Expires: {formatDate(cls.expirationDate)}
                             </div>
                           )}
@@ -273,15 +275,17 @@ const ClassesPage = () => {
                 );
               })}
 
-              {/* Add Class Card */}
-              <div
-                onClick={() => setShowAddClassModal(true)}
-                className="bg-white/5 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-dashed border-white/30 hover:border-[#ffcb25] hover:bg-white/10 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[200px] group"
-              >
-                <FaPlus className="text-4xl text-[#ffcb25] mb-4 group-hover:scale-110 transition-transform duration-300" />
-                <h3 className="text-xl font-bold text-[#ffcb25] mb-2">Add New Class</h3>
-                <p className="text-gray-300 text-center">Track a new class and get notified when spots open</p>
-              </div>
+              {/* Add Class Card (only show if under max) */}
+              {!maxClassesReached && (
+                <div
+                  onClick={() => setShowAddClassModal(true)}
+                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-dashed border-white/30 hover:border-[#ffcb25] hover:bg-white/10 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[200px] group"
+                >
+                  <FaPlus className="text-4xl text-[#ffcb25] mb-4 group-hover:scale-110 transition-transform duration-300" />
+                  <h3 className="text-xl font-bold text-[#ffcb25] mb-2">Add New Class</h3>
+                  <p className="text-gray-300 text-center">Track a new class and get notified when spots open</p>
+                </div>
+              )}
             </div>
           </div>
         )}
