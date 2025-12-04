@@ -11,6 +11,7 @@ import ClassesPage from "./components/ClassesPage";
 import { decodeJwt } from "./utils/decodeJwt";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
+import VerifyEmail from "./components/VerifyEmail";
 
 // Component to force scroll to top on route change
 const ScrollToTop = () => {
@@ -128,6 +129,7 @@ function App() {
             <Route path="/auth" element={<AuthPage setToken={setToken} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
           </Routes>
         </div>
       </Router>
