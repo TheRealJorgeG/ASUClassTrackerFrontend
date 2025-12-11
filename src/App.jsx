@@ -12,6 +12,7 @@ import { decodeJwt } from "./utils/decodeJwt";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import VerifyEmail from "./components/VerifyEmail";
+import AwaitingVerification from "./components/AwaitingVerification";
 
 // Component to force scroll to top on route change
 const ScrollToTop = () => {
@@ -130,6 +131,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/awaiting-verification" element={<AwaitingVerification />} />
           </Routes>
         </div>
       </Router>

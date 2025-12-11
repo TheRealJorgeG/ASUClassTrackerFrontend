@@ -1,31 +1,48 @@
 import React, { useState } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom"; // Added useLocation
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import config from "../config/api";
+import Modal from "./Modal"; // Import your new Modal component
 
 const AuthPage = ({ setToken }) => {
-  const location = useLocation(); // Initialize useLocation
+  const location = useLocation();
   // Check location state. If { isLogin: false } is passed, start with signup. Default to login (true).
   const initialIsLogin = location.state?.isLogin ?? true; 
   
-  const [isLogin, setIsLogin] = useState(initialIsLogin); // Use location state for initial value
+  const [isLogin, setIsLogin] = useState(initialIsLogin);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // State for the Modal
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  });
+
   const navigate = useNavigate();
 
   React.useEffect(() => {
     setTimeout(() => setIsVisible(true), 100);
   }, []);
 
+  // Handle closing the modal
+  const handleCloseModal = () => {
+    setModalConfig({ ...modalConfig, isOpen: false });
+    
+    // Only navigate to home if it was a successful login
+    // This ensures the user reads the "Success" message before moving on
+    if (modalConfig.type === 'success' && isLogin) {
+      navigate("/");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     const endpoint = isLogin ? "/api/users/login" : "/api/users/register";
-
-    console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
-    console.log('config.API_BASE_URL:', config.API_BASE_URL);
-    console.log('Full URL being called:', `${config.API_BASE_URL}${endpoint}`);
 
     try {
       const response = await fetch(`${config.API_BASE_URL}${endpoint}`, {
@@ -34,32 +51,57 @@ const AuthPage = ({ setToken }) => {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Something went wrong");
+        throw new Error(data.message || "Something went wrong");
       }
 
-      const data = await response.json();
       if (isLogin) {
         localStorage.setItem("token", data.accessToken);
         setToken(data.accessToken);
-        alert("Login successful!");
-        navigate("/");
+        
+        // Show Success Modal instead of alert()
+        setModalConfig({
+          isOpen: true,
+          title: "Welcome Back!",
+          message: "You have successfully logged in.",
+          type: "success"
+        });
+        
       } else {
-        alert("Registered! Now login.");
-        setIsLogin(true);
+        // For registration, we still redirect immediately to the verification page
+        navigate("/awaiting-verification", { 
+          state: { email, password } 
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("Error: " + error.message);
+      // Show Error Modal instead of alert()
+      setModalConfig({
+        isOpen: true,
+        title: "Access Denied",
+        message: error.message,
+        type: "error"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    // Removed the background gradient override - now inherits from App.jsx
     <div className="min-h-screen relative overflow-hidden">
-      {/* Simple background decorations - kept but made more subtle */}
+      
+      {/* Render the Modal here */}
+      <Modal 
+        isOpen={modalConfig.isOpen} 
+        onClose={handleCloseModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
+
+      {/* Background decorations */}
       <div className="absolute top-0 left-0 w-full h-full">
         <div className="absolute top-20 left-10 w-32 h-32 bg-[#ffcb25]/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 right-10 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
@@ -68,7 +110,7 @@ const AuthPage = ({ setToken }) => {
 
       <div className="relative flex flex-col items-center justify-start min-h-screen px-4 py-8">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          {/* Simple Header Section */}
+          {/* Header Section */}
           <div className="text-center mb-10">
             <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-4 tracking-tight">
               {isLogin ? "Welcome Back" : "Join Class Tracker"}
@@ -82,7 +124,7 @@ const AuthPage = ({ setToken }) => {
             </p>
           </div>
 
-          {/* Clean Form Container */}
+          {/* Form Container */}
           <div className="relative group max-w-md w-full">
             <div className="absolute inset-0 bg-gradient-to-r from-[#A23A56] to-[#ffcb25] rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-all duration-500"></div>
             
@@ -166,7 +208,7 @@ const AuthPage = ({ setToken }) => {
             </form>
           </div>
 
-          {/* Simple Additional Info */}
+          {/* Additional Info */}
           <div className="mt-10 max-w-md mx-auto">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
               <div className="flex items-start gap-4">
