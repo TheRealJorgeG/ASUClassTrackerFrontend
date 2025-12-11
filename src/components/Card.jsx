@@ -13,7 +13,8 @@ const Card = () => {
   return (
     <div className="w-full py-[10rem] px-4">
       <div className="max-w-[1240px] mx-auto grid md:grid-cols-1 gap-8">
-        <div className="w-full shadow-xl flex flex-col p-8 my-4 rounded-lg bg-white hover:scale-105 duration-300">
+        {/* Removed hover:scale-105 and duration-300 to get rid of card hover effect */}
+        <div className="w-full shadow-xl flex flex-col p-8 my-4 rounded-lg bg-white">
           <div className="mx-auto mt-[-3rem] bg-white rounded-full p-4">
             <CgProfile size={80} className="text-[#A23A56]" />
           </div>
@@ -26,7 +27,8 @@ const Card = () => {
           </div>
           <button
             onClick={handleGetStarted}
-            className="bg-[#A23A56] w-[200px] rounded-md font-medium my-6 mx-auto px-6 py-3 text-white"
+            // Updated button styles to match AuthPage button (gradient, shadow, animation)
+            className="w-[200px] mx-auto my-6 py-4 bg-gradient-to-r from-[#A23A56] to-[#B8456E] text-white rounded-xl font-bold text-lg hover:from-[#B8456E] hover:to-[#A23A56] transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#A23A56] focus:ring-opacity-50"
           >
             Get Started
           </button>

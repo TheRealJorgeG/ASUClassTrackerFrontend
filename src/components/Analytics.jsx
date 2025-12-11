@@ -72,7 +72,7 @@ const Analytics = () => {
                         <p className='text-lg text-gray-700 leading-relaxed font-medium'>
                             Class Tracker is a revolutionary web application designed to eliminate the stress of class enrollment. 
                             Built specifically for ASU students, it monitors your desired classes in real-time and delivers instant notifications 
-                            the moment a spot becomes available.
+                            the moment a seat becomes available.
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -96,9 +96,9 @@ const Analytics = () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.021 5.979a9.987 9.987 0 016.626-2.998c5.522 0 9.998 4.477 9.998 9.999 0 2.44-.882 4.668-2.344 6.385l-7.655-7.655V5.979z" />
                                         </svg>
                                     </div>
-                                    <h3 className="font-bold text-gray-800">Multi-Platform Alerts</h3>
+                                    <h3 className="font-bold text-gray-800">Email Alerts</h3>
                                 </div>
-                                <p className="text-gray-600 text-sm">Get notified via email and Discord instantly when spots open</p>
+                                <p className="text-gray-600 text-sm">Get notified instantly via email when a seat opens up</p>
                             </div>
                         </div>
                         

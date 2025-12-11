@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import config from "../config/api";
-import Modal from "./Modal";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -9,15 +8,9 @@ const ResetPassword = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(""); // Used for success message in full-screen view
+  const [errorMessage, setErrorMessage] = useState(""); // Used for inline errors
   const [token, setToken] = useState("");
-  
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    type: "success"
-  });
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -27,61 +20,33 @@ const ResetPassword = () => {
     if (tokenFromUrl) {
       setToken(tokenFromUrl);
     } else {
-      setModalConfig({
-        isOpen: true,
-        title: "Invalid Link",
-        message: "This password reset link is invalid or missing.",
-        type: "error"
-      });
+      setErrorMessage("This password reset link is invalid or missing.");
     }
     
     setTimeout(() => setIsVisible(true), 100);
   }, [searchParams]);
 
-  const handleCloseModal = () => {
-    setModalConfig({ ...modalConfig, isOpen: false });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage(""); // Clear previous errors
     
     if (!token) {
-      setModalConfig({
-        isOpen: true,
-        title: "Error",
-        message: "Invalid reset token. Please request a new password reset.",
-        type: "error"
-      });
+      setErrorMessage("Invalid reset token. Please request a new password reset.");
       return;
     }
     
     if (password !== confirmPassword) {
-      setModalConfig({
-        isOpen: true,
-        title: "Mismatch",
-        message: "Passwords do not match. Please try again.",
-        type: "error"
-      });
+      setErrorMessage("Passwords do not match. Please try again.");
       return;
     }
     
     if (password.length < 6) {
-      setModalConfig({
-        isOpen: true,
-        title: "Password Too Short",
-        message: "Password must be at least 6 characters long.",
-        type: "error"
-      });
+      setErrorMessage("Password must be at least 6 characters long.");
       return;
     }
 
     if (password.length > 15) {
-      setModalConfig({
-        isOpen: true,
-        title: "Password Too Long",
-        message: "Password must be 15 characters or less.",
-        type: "error"
-      });
+      setErrorMessage("Password must be 15 characters or less.");
       return;
     }
 
@@ -100,21 +65,11 @@ const ResetPassword = () => {
         setIsSuccess(true);
         setMessage("Password reset successful! You can now log in with your new password.");
       } else {
-        setModalConfig({
-          isOpen: true,
-          title: "Reset Failed",
-          message: data.message || "Something went wrong. Please try again.",
-          type: "error"
-        });
+        setErrorMessage(data.message || "Something went wrong. Please try again.");
       }
     } catch (error) {
       console.error(error);
-      setModalConfig({
-        isOpen: true,
-        title: "Network Error",
-        message: "Please check your connection and try again.",
-        type: "error"
-      });
+      setErrorMessage("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -163,14 +118,6 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <Modal 
-        isOpen={modalConfig.isOpen} 
-        onClose={handleCloseModal}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-      />
-
       <div className="absolute top-0 left-0 w-full h-full">
         <div className="absolute top-20 left-10 w-32 h-32 bg-[#ffcb25]/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 right-10 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
@@ -178,7 +125,6 @@ const ResetPassword = () => {
       </div>
 
       <div className="relative flex flex-col items-center justify-start min-h-screen px-4 pt-32 pb-12">
-        {/* Added w-full to this wrapper to ensure it uses the available width */}
         <div className={`w-full transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="text-center mb-8">
             <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-4 tracking-tight">
@@ -190,7 +136,6 @@ const ResetPassword = () => {
             </p>
           </div>
 
-          {/* ADDED mx-auto HERE */}
           <div className="relative group max-w-md w-full mb-8 mx-auto">
             <div className="absolute inset-0 bg-gradient-to-r from-[#A23A56] to-[#ffcb25] rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-all duration-500"></div>
             
@@ -208,7 +153,10 @@ const ResetPassword = () => {
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A23A56] focus:border-transparent focus:bg-white transition-all duration-300 text-gray-800 placeholder-gray-400"
                   placeholder="Enter your new password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErrorMessage(""); // Clear error on change
+                  }}
                   required
                 />
               </div>
@@ -223,9 +171,19 @@ const ResetPassword = () => {
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A23A56] focus:border-transparent focus:bg-white transition-all duration-300 text-gray-800 placeholder-gray-400"
                   placeholder="Confirm your new password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setErrorMessage(""); // Clear error on change
+                  }}
                   required
                 />
+                
+                {/* Inline Error Message */}
+                {errorMessage && (
+                  <p className="text-red-500 text-sm font-medium mt-2">
+                    {errorMessage}
+                  </p>
+                )}
               </div>
 
               <button

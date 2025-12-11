@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import config from "../config/api";
-import Modal from "./Modal"; // Import your new Modal component
 
 const AuthPage = ({ setToken }) => {
   const location = useLocation();
@@ -13,14 +12,7 @@ const AuthPage = ({ setToken }) => {
   const [password, setPassword] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // State for the Modal
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    type: "success"
-  });
+  const [errorMessage, setErrorMessage] = useState(""); // State for inline error messages
 
   const navigate = useNavigate();
 
@@ -28,20 +20,10 @@ const AuthPage = ({ setToken }) => {
     setTimeout(() => setIsVisible(true), 100);
   }, []);
 
-  // Handle closing the modal
-  const handleCloseModal = () => {
-    setModalConfig({ ...modalConfig, isOpen: false });
-    
-    // Only navigate to home if it was a successful login
-    // This ensures the user reads the "Success" message before moving on
-    if (modalConfig.type === 'success' && isLogin) {
-      navigate("/");
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(""); // Clear previous errors
     const endpoint = isLogin ? "/api/users/login" : "/api/users/register";
 
     try {
@@ -61,13 +43,8 @@ const AuthPage = ({ setToken }) => {
         localStorage.setItem("token", data.accessToken);
         setToken(data.accessToken);
         
-        // Show Success Modal instead of alert()
-        setModalConfig({
-          isOpen: true,
-          title: "Welcome Back!",
-          message: "You have successfully logged in.",
-          type: "success"
-        });
+        // Redirect immediately instead of showing a modal
+        navigate("/");
         
       } else {
         // For registration, we still redirect immediately to the verification page
@@ -77,13 +54,8 @@ const AuthPage = ({ setToken }) => {
       }
     } catch (error) {
       console.error(error);
-      // Show Error Modal instead of alert()
-      setModalConfig({
-        isOpen: true,
-        title: "Access Denied",
-        message: error.message,
-        type: "error"
-      });
+      // Set inline error message
+      setErrorMessage(error.message || "The password you've entered is incorrect");
     } finally {
       setIsLoading(false);
     }
@@ -92,15 +64,6 @@ const AuthPage = ({ setToken }) => {
   return (
     <div className="min-h-screen relative overflow-hidden">
       
-      {/* Render the Modal here */}
-      <Modal 
-        isOpen={modalConfig.isOpen} 
-        onClose={handleCloseModal}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-      />
-
       {/* Background decorations */}
       <div className="absolute top-0 left-0 w-full h-full">
         <div className="absolute top-20 left-10 w-32 h-32 bg-[#ffcb25]/10 rounded-full blur-3xl"></div>
@@ -143,7 +106,10 @@ const AuthPage = ({ setToken }) => {
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A23A56] focus:border-transparent focus:bg-white transition-all duration-300 text-gray-800 placeholder-gray-400"
                     placeholder="your.email@asu.edu"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrorMessage(""); // Clear error on change
+                    }}
                     required
                   />
                 </div>
@@ -158,9 +124,18 @@ const AuthPage = ({ setToken }) => {
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A23A56] focus:border-transparent focus:bg-white transition-all duration-300 text-gray-800 placeholder-gray-400"
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrorMessage(""); // Clear error on change
+                    }}
                     required
                   />
+                  {/* Inline Error Message */}
+                  {errorMessage && (
+                    <p className="text-red-500 text-sm font-medium mt-2">
+                      {errorMessage}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -183,7 +158,10 @@ const AuthPage = ({ setToken }) => {
                 <div>
                   <button
                     type="button"
-                    onClick={() => setIsLogin(!isLogin)}
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setErrorMessage(""); // Clear error on toggle
+                    }}
                     className="text-[#A23A56] font-semibold hover:text-[#B8456E] transition-colors duration-300 underline decoration-2 underline-offset-2"
                   >
                     {isLogin

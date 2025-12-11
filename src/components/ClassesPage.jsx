@@ -1,19 +1,46 @@
 import React, { useEffect, useState } from "react";
 import { FaTrash, FaPlus, FaEye, FaClock, FaMapMarkerAlt, FaUser, FaCalendarAlt, FaExclamationTriangle, FaHashtag, FaCalendar } from "react-icons/fa";
+import { useNavigate } from "react-router-dom"; 
 import config from "../config/api";
+import Modal from "./Modal";
 
 const ClassesPage = () => {
   const [classes, setClasses] = useState([]);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
+  
+  // -- STATE FOR DELETE CONFIRMATION --
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [classToDelete, setClassToDelete] = useState(null);
+
   const [newClassNumber, setNewClassNumber] = useState("");
   const [previewClass, setPreviewClass] = useState(null);
-  const [loading, setLoading] = useState(false);
+  
+  // Loading states
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  
+  const [errorMessage, setErrorMessage] = useState("");
+  
+  // Session Expiration State
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  const navigate = useNavigate();
   const MAX_CLASSES = 3;
+
+  const handleSessionExpired = () => {
+    setIsSessionExpired(false);
+    localStorage.removeItem("token"); 
+    navigate("/auth"); 
+  };
 
   useEffect(() => {
     const fetchClasses = async () => {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        setPageLoading(false);
+        return;
+      }
 
       try {
         const response = await fetch(`${config.API_BASE_URL}/api/classes`, {
@@ -21,6 +48,11 @@ const ClassesPage = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+
+        if (response.status === 401) {
+          setIsSessionExpired(true);
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("Failed to fetch classes");
@@ -30,24 +62,28 @@ const ClassesPage = () => {
         setClasses(data);
       } catch (error) {
         console.error(error);
+      } finally {
+        setPageLoading(false);
       }
     };
 
     fetchClasses();
   }, []);
 
-  const handleDelete = async (classId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to remove this class from your tracked classes?"
-    );
-    if (!confirmDelete) return;
+  const handleDelete = (classId) => {
+    setClassToDelete(classId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!classToDelete) return;
 
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
       const response = await fetch(
-        `${config.API_BASE_URL}/api/classes/${classId}`,
+        `${config.API_BASE_URL}/api/classes/${classToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -56,13 +92,21 @@ const ClassesPage = () => {
         }
       );
 
+      if (response.status === 401) {
+        setIsSessionExpired(true);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error("Failed to delete class");
       }
 
-      setClasses(classes.filter((cls) => cls._id !== classId));
+      setClasses(classes.filter((cls) => cls._id !== classToDelete));
     } catch (error) {
       console.error(error);
+    } finally {
+      setShowDeleteModal(false);
+      setClassToDelete(null);
     }
   };
 
@@ -70,8 +114,9 @@ const ClassesPage = () => {
     const token = localStorage.getItem("token");
     if (!token || !newClassNumber) return;
 
-    setLoading(true);
+    setPreviewLoading(true);
     setPreviewClass(null);
+    setErrorMessage("");
 
     try {
       const response = await fetch(
@@ -86,27 +131,36 @@ const ClassesPage = () => {
         }
       );
 
+      if (response.status === 401) {
+        setIsSessionExpired(true);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error("Failed to preview class");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to preview class");
       }
 
       const data = await response.json();
       setPreviewClass(data);
     } catch (error) {
       console.error(error);
-      alert("Failed to preview class. Please try again.");
+      if (!isSessionExpired) {
+        setErrorMessage(error.message || "Failed to preview class. Please try again.");
+      }
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   };
 
   const handleAddClass = async () => {
     if (!previewClass) {
-      alert("Please preview the class before adding.");
+      setErrorMessage("Please preview the class before adding.");
       return;
     }
 
-    setLoading(true);
+    setAddLoading(true);
+    setErrorMessage("");
 
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -121,8 +175,14 @@ const ClassesPage = () => {
         body: JSON.stringify(previewClass),
       });
 
+      if (response.status === 401) {
+        setIsSessionExpired(true);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error("Failed to add class");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to add class");
       }
 
       const data = await response.json();
@@ -130,18 +190,30 @@ const ClassesPage = () => {
       setShowAddClassModal(false);
       setNewClassNumber("");
       setPreviewClass(null);
+      setErrorMessage("");
     } catch (error) {
       console.error(error);
-      alert("Failed to add class. Please try again.");
+      if (!isSessionExpired) {
+        setErrorMessage(error.message || "Failed to add class. Please try again.");
+      }
     } finally {
-      setLoading(false);
+      setAddLoading(false);
     }
   };
+
+  const handleCloseModal = () => {
+    setShowAddClassModal(false);
+    setNewClassNumber("");
+    setPreviewClass(null);
+    setErrorMessage("");
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
+
   const isExpiringSoon = (expirationDate) => {
     if (!expirationDate) return false;
     const now = new Date();
@@ -158,13 +230,76 @@ const ClassesPage = () => {
     return days;
   };
 
-  // Separate classes into active and expired
   const activeClasses = classes.filter(cls => !cls.isExpired);
   const expiredClasses = classes.filter(cls => cls.isExpired);
   const maxClassesReached = activeClasses.length >= MAX_CLASSES;
 
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#ffcb25]"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen text-white">
+      {/* Session Expired Modal */}
+      <Modal 
+        isOpen={isSessionExpired} 
+        onClose={handleSessionExpired}
+        title="Session Expired"
+        message="Your session has expired. Please log in again to continue."
+        type="error"
+      />
+
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {showDeleteModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/60 backdrop-blur-sm transition-all duration-100"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div 
+            className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden transform scale-100"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Top Decorative Gradient */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A23A56] to-[#ffcb25]"></div>
+
+            <div className="p-8 text-center">
+              {/* Icon Circle */}
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-red-100">
+                <FaTrash className="w-8 h-8 text-[#A23A56]" />
+              </div>
+
+              <h3 className="text-2xl font-black text-gray-800 mb-2 tracking-tight">
+                Remove Class?
+              </h3>
+
+              <p className="text-gray-500 font-medium mb-8 leading-relaxed">
+                Are you sure you want to remove this class from your tracked classes?
+              </p>
+
+              {/* BUTTONS SWAPPED HERE */}
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-3.5 bg-[#92223D] hover:bg-[#6b1a2f] text-white rounded-xl font-bold text-lg shadow-lg transition-all duration-200"
+                >
+                  Remove
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-lg transition-all duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -207,7 +342,6 @@ const ClassesPage = () => {
                       </button>
                     </div>
 
-                    {/* Active Class Cards */}
                     <div className="space-y-3">
                       <div className="flex items-center text-sm text-gray-300">
                         <FaUser className="mr-2 text-[#ffcb25]" />
@@ -239,7 +373,6 @@ const ClassesPage = () => {
                         <span>{cls.location && cls.location !== "N/A" ? cls.location : "Location TBD"}</span>
                       </div>
 
-                      {/* Session and Expiration Info */}
                       {cls.session && cls.session !== "Unknown" && (
                         <div className="pt-2 border-t border-white/20">
                           <div className="flex items-center justify-between text-sm">
@@ -275,7 +408,6 @@ const ClassesPage = () => {
                 );
               })}
 
-              {/* Add Class Card (only show if under max) */}
               {!maxClassesReached && (
                 <div
                   onClick={() => setShowAddClassModal(true)}
@@ -349,9 +481,9 @@ const ClassesPage = () => {
           </div>
         )}
 
-        {/* Modal */}
+        {/* Add Class Modal */}
         {showAddClassModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4 animate-fadeIn">
             <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6 text-[#92223D]">Add New Class</h2>
               
@@ -362,16 +494,30 @@ const ClassesPage = () => {
                   placeholder="e.g., 12345"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#92223D] focus:border-transparent text-gray-900"
                   value={newClassNumber}
-                  onChange={(e) => setNewClassNumber(e.target.value)}
+                  onChange={(e) => {
+                    setNewClassNumber(e.target.value);
+                    setErrorMessage(""); 
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !previewLoading && !addLoading) {
+                      handlePreview();
+                    }
+                  }}
                 />
+                
+                {errorMessage && (
+                  <p className="text-red-500 text-sm font-medium mt-2">
+                    {errorMessage}
+                  </p>
+                )}
               </div>
 
               <button
                 onClick={handlePreview}
-                disabled={loading}
+                disabled={previewLoading || addLoading}
                 className="w-full py-3 bg-[#92223D] hover:bg-[#6b1a2f] text-white rounded-xl font-medium mb-4 flex items-center justify-center transition-all duration-300 disabled:opacity-50"
               >
-                {loading ? (
+                {previewLoading ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 ) : (
                   <>
@@ -415,21 +561,17 @@ const ClassesPage = () => {
 
               <div className="flex space-x-3">
                 <button
-                  onClick={() => {
-                    setShowAddClassModal(false);
-                    setNewClassNumber("");
-                    setPreviewClass(null);
-                  }}
+                  onClick={handleCloseModal}
                   className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-xl font-medium transition-all duration-300"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAddClass}
-                  disabled={loading || !previewClass}
+                  disabled={addLoading || previewLoading || !previewClass}
                   className="flex-1 py-3 bg-[#ffcb25] hover:bg-[#e6b622] text-[#92223D] rounded-xl font-medium transition-all duration-300 disabled:opacity-50"
                 >
-                  {loading ? "Adding..." : "Add Class"}
+                  {addLoading ? "Adding..." : "Add Class"}
                 </button>
               </div>
             </div>

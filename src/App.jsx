@@ -1,101 +1,113 @@
 import React, { useState, useEffect } from "react";
-// Import useLocation from react-router-dom for ScrollToTop
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom"; 
 
+// Components
 import Navbar from "./components/Navbar";
 import Villain from "./components/Villain";
 import Analytics from "./components/Analytics";
 import Card from "./components/Card";
 import AuthPage from "./components/AuthPage";
 import ClassesPage from "./components/ClassesPage"; 
-import { decodeJwt } from "./utils/decodeJwt";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import VerifyEmail from "./components/VerifyEmail";
 import AwaitingVerification from "./components/AwaitingVerification";
+import Modal from "./components/Modal"; 
 
-// Component to force scroll to top on route change
+// Utils
+import { decodeJwt } from "./utils/decodeJwt";
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-
   useEffect(() => {
-    // Scroll to the top of the page on route change
     window.scrollTo(0, 0);
   }, [pathname]);
-
   return null;
 };
 
 function App() {
   const [token, setToken] = useState("");
   const [user, setUser] = useState(null);
+  const [showSessionExpired, setShowSessionExpired] = useState(false);
 
-  // Centralized logout function for Navbar and automatic expiry
   const logoutUser = () => {
     localStorage.removeItem("token");
     setToken("");
-    // setUser(null) is handled by the useEffect below
+    setUser(null); // Explicitly clear user here to force re-render
   };
 
+  // This function now handles the actual logout
+  const handleCloseModal = () => {
+    setShowSessionExpired(false);
+    logoutUser(); // Logout only AFTER user clicks "Okay"
+  };
+
+  // 1. Initial Load Check
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     if (storedToken) {
       const decoded = decodeJwt(storedToken);
       const currentTime = Date.now() / 1000;
 
-      // Check for token expiration immediately on load
+      // Check for token expiration
       if (decoded && decoded.exp && decoded.exp < currentTime) {
-        console.log("Token expired on load. Logging out.");
-        logoutUser();
-        return;
+        console.log("Token expired on load.");
+        setShowSessionExpired(true); 
+        // We do NOT logout here. We allow the code to proceed 
+        // and set the user so the background page renders.
       }
 
       if (decoded && decoded.user && decoded.user.email) {
         setToken(storedToken);
         setUser(decoded.user);
       } else {
-        // If token is present but decoding failed (e.g., bad format or missing user field)
         localStorage.removeItem("token");
       }
     }
   }, []);
 
+  // 2. Interval Check
   useEffect(() => {
     let intervalId;
     
     if (token) {
       const decoded = decodeJwt(token);
-      setUser(decoded.user);
+      // Defensive check
+      if (decoded?.user && !user) {
+        setUser(decoded.user);
+      }
 
-      const EXPIRATION_CHECK_INTERVAL = 60000; // Check every 1 minute (60 seconds)
+      const EXPIRATION_CHECK_INTERVAL = 60000; 
       
       const checkExpiration = () => {
-        const currentTime = Date.now() / 1000; // current time in seconds
-        const expirationTime = decoded.exp; // Assuming 'exp' is in seconds since epoch
+        if (!decoded || !decoded.exp) return;
+
+        const currentTime = Date.now() / 1000;
+        const expirationTime = decoded.exp;
         
-        // Log out if expiration is passed
-        if (expirationTime && expirationTime < currentTime) {
-          console.log("Token expired during session. Logging out.");
+        if (expirationTime < currentTime) {
+          console.log("Token expired during session.");
           clearInterval(intervalId); 
-          logoutUser();
+          setShowSessionExpired(true); // Show Modal
+          // Do NOT logoutUser() here. 
+          // Keeping 'user' state active keeps ClassesPage visible.
         }
       };
       
-      // Check expiration immediately and then set up periodic check
       checkExpiration();
       intervalId = setInterval(checkExpiration, EXPIRATION_CHECK_INTERVAL);
       
     } else {
-      setUser(null);
+      // If no token, ensure user is null
+      if (user) setUser(null);
     }
     
-    // Cleanup function to clear the interval when component unmounts or token changes
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
-  }, [token]);
+  }, [token, user]);
 
   return (
     <div 
@@ -104,12 +116,20 @@ function App() {
         background: 'linear-gradient(to bottom, #A23A56 0%, #92223D 25%, #6b1a2f 50%, #92223D 75%, #A23A56 100%)'
       }}
     >
-      {/* Gradient overlays for extra depth */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-pink-900/20"></div>
       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-red-900/10 to-yellow-900/10"></div>
       
+      {/* Modal is rendered here, overlaying whatever page is currently valid */}
+      <Modal 
+        isOpen={showSessionExpired} 
+        onClose={handleCloseModal} 
+        title="Session Expired" 
+        message="Your session has timed out for security reasons. Please log in again."
+        type="error"
+      />
+
       <Router>
-        <ScrollToTop /> {/* Render ScrollToTop here to automatically scroll to the top */}
+        <ScrollToTop /> 
         <div className="relative z-10">
           <Navbar user={user} handleLogout={logoutUser} />
           <Routes>

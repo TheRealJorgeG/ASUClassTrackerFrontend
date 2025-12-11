@@ -6,7 +6,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false); // Changed from isSubmitted to isSuccess for clarity
   const [message, setMessage] = useState("");
 
   React.useEffect(() => {
@@ -15,101 +15,32 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('🚀 Form submitted!'); 
-    console.log('📧 Email:', email);
-    console.log('🌐 Full URL:', `${config.API_BASE_URL}/api/users/forgot-password`);
-    
     setIsLoading(true);
     setMessage("");
+    setIsSuccess(false);
 
     try {
-      console.log('📤 Making fetch request...');
-      
       const response = await fetch(`${config.API_BASE_URL}/api/users/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       
-      console.log('📥 Response received:', response.status, response.statusText);
-      
       const data = await response.json();
-      console.log('📊 Response data:', data);
 
       if (response.ok) {
-        setIsSubmitted(true);
+        setIsSuccess(true);
         setMessage("Password reset instructions have been sent to your email address.");
       } else {
         setMessage(data.message || "Something went wrong. Please try again.");
       }
     } catch (error) {
-      console.error('❌ Fetch error:', error);
+      console.error('Fetch error:', error);
       setMessage("Network error. Please check your connection and try again.");
     } finally {
-      console.log('✅ Request completed');
       setIsLoading(false);
     }
   };
-
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-20 left-10 w-32 h-32 bg-[#ffcb25]/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-[#A23A56]/5 to-[#ffcb25]/5 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="relative flex flex-col items-center justify-start min-h-screen px-4 pt-16 pb-8">
-          {/* Fixed Position Green Checkmark Icon */}
-          <div className={`absolute top-16 left-1/2 transform -translate-x-1/2 w-20 h-20 bg-gradient-to-br from-[#4ade80] to-[#22c55e] rounded-full flex items-center justify-center transition-all duration-1000 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-
-          <div className={`mt-32 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            {/* Success Message */}
-            <div className="text-center mb-6">
-              <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-4 tracking-tight">
-                Check Your Email
-              </h1>
-              
-              <p className="text-lg text-white/80 leading-relaxed font-medium max-w-md mx-auto mb-4">
-                {message}
-              </p>
-
-              <p className="text-sm text-white/60 max-w-md mx-auto mb-2">
-                If you don't see the email, check your spam folder or try again with a different email address.
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-4 max-w-md w-full">
-              <Link
-                to="/auth"
-                className="block w-full py-4 bg-gradient-to-r from-[#A23A56] to-[#B8456E] text-white rounded-xl font-bold text-lg hover:from-[#B8456E] hover:to-[#A23A56] transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#A23A56] focus:ring-opacity-50 text-center"
-              >
-                Back to Sign In
-              </Link>
-              
-              <button
-                onClick={() => {
-                  setIsSubmitted(false);
-                  setEmail("");
-                  setMessage("");
-                }}
-                className="block w-full py-3 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20"
-              >
-                Try Different Email
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -141,15 +72,6 @@ const ForgotPassword = () => {
               onSubmit={handleSubmit}
               className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/30 hover:shadow-3xl transition-all duration-500 space-y-6"
             >
-              {/* Error/Success Message */}
-              {message && (
-                <div className={`p-4 rounded-xl ${message.includes('sent') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                  <p className={`text-sm font-medium ${message.includes('sent') ? 'text-green-800' : 'text-red-800'}`}>
-                    {message}
-                  </p>
-                </div>
-              )}
-
               <div>
                 <label htmlFor="email" className="block text-gray-700 font-semibold mb-2">
                   Email Address
@@ -160,9 +82,19 @@ const ForgotPassword = () => {
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A23A56] focus:border-transparent focus:bg-white transition-all duration-300 text-gray-800 placeholder-gray-400"
                   placeholder="your.email@asu.edu"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setMessage(""); // Clear message on type
+                  }}
                   required
                 />
+                
+                {/* Inline Message (Error or Success) */}
+                {message && (
+                  <p className={`text-sm font-medium mt-2 ${isSuccess ? 'text-green-600' : 'text-red-500'}`}>
+                    {message}
+                  </p>
+                )}
               </div>
 
               <button
@@ -203,7 +135,7 @@ const ForgotPassword = () => {
                 <div>
                   <h3 className="font-bold text-white mb-1">Secure Reset</h3>
                   <p className="text-white/70 text-sm">
-                    We'll send a secure link to your email that expires in 1 hour. Click the link to create a new password.
+                    We'll send a secure link to your email that expires in 10 minutes. Click the link to create a new password.
                   </p>
                 </div>
               </div>

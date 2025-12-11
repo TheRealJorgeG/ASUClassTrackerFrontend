@@ -7,7 +7,8 @@ const Modal = ({ isOpen, onClose, title, message, type = 'success' }) => {
     if (isOpen) {
       setShow(true);
     } else {
-      setTimeout(() => setShow(false), 300);
+      // Changed from 200ms to 100ms for a faster exit
+      setTimeout(() => setShow(false), 100);
     }
   }, [isOpen]);
 
@@ -15,13 +16,15 @@ const Modal = ({ isOpen, onClose, title, message, type = 'success' }) => {
 
   return (
     <div 
-      className={`fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 transition-all duration-300 ${
+      // Changed duration-200 to duration-100
+      className={`fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 transition-all duration-100 ${
         isOpen ? 'bg-black/60 backdrop-blur-sm opacity-100' : 'opacity-0 pointer-events-none'
       }`}
       onClick={onClose}
     >
       <div 
-        className={`relative bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300 ${
+        // Changed duration-200 to duration-100
+        className={`relative bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-100 ${
           isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
         }`}
         onClick={e => e.stopPropagation()}
@@ -57,7 +60,8 @@ const Modal = ({ isOpen, onClose, title, message, type = 'success' }) => {
 
           <button
             onClick={onClose}
-            className="w-full py-3.5 bg-gradient-to-r from-[#A23A56] to-[#B8456E] text-white rounded-xl font-bold text-lg hover:from-[#B8456E] hover:to-[#A23A56] transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-[#A23A56]/25"
+            // Button transition can remain slightly smoother (300ms) or be matched to 100ms if preferred
+            className="w-full py-3.5 bg-[#92223D] hover:bg-[#6b1a2f] text-white rounded-xl font-bold text-lg shadow-lg transition-all duration-300"
           >
             Okay, Got it!
           </button>
